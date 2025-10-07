@@ -1,0 +1,27 @@
+esphome:
+  name: trmnl
+  friendly_name: trmnl
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+wifi:
+  ssid: "YOUR_SSID"
+  password: "YOUR_PASSWORD"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Trmnl Fallback Hotspot"
+    password: "fallback-password"
+
+captive_portal:
