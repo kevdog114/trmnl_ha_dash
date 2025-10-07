@@ -3,9 +3,9 @@ esphome:
   friendly_name: trmnl
 
 esp32:
-  board: esp32dev
+  board: esp32-c3-devkitm-1
   framework:
-    type: arduino
+    type: esp-idf
 
 # Enable logging
 logger:
@@ -25,3 +25,53 @@ wifi:
     password: "fallback-password"
 
 captive_portal:
+
+# SPI bus configuration for the Waveshare e-paper display.
+# These pins are the default hardware SPI pins for the ESP32-C3.
+spi:
+  clk_pin: GPIO6
+  mosi_pin: GPIO7
+
+font:
+  - file: "gfonts://Roboto"
+    id: roboto_font
+    size: 20
+
+time:
+  - platform: homeassistant
+    id: ha_time
+
+# Color definitions for the tri-color (Black, White, Red) display.
+color:
+  - id: color_black
+    red: 0%
+    green: 0%
+    blue: 0%
+  - id: color_red
+    red: 100%
+    green: 0%
+    blue: 0%
+
+# Display configuration for the Waveshare 7.5" e-paper display.
+# IMPORTANT: Ensure your display is wired to the ESP32-C3-DevKitM-1 according to these pins.
+display:
+  - platform: waveshare_epaper
+    id: epaper_display
+    # Model for the Waveshare 7.5inch e-Paper Module (B) V3 with Black, White, and Red support.
+    # If you have the black and white only version, use '7.50in-bV3'.
+    model: 7.50in-bV3-bwr
+    # The CS pin MUST be a free GPIO. GPIO10 is used for the internal flash and cannot be used.
+    cs_pin: GPIO5
+    dc_pin: GPIO0
+    busy_pin:
+      number: GPIO1
+      # This is required for V2 and V3 models to prevent damage.
+      inverted: true
+    reset_pin: GPIO3
+    update_interval: 300s
+    lambda: |-
+      if (id(ha_time).now().is_valid()) {
+        it.printf(10, 10, id(roboto_font), id(color_black), "%s", id(ha_time).now().strftime("%A, %B %d, %Y").c_str());
+      } else {
+        it.printf(10, 10, id(roboto_font), id(color_black), "Waiting for time...");
+      }
