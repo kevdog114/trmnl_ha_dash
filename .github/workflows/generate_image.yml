@@ -1,0 +1,49 @@
+name: Generate Dashboard Image
+
+on:
+  workflow_dispatch: # Allows manual triggering of the action
+  schedule:
+    - cron: '*/15 * * * *' # Runs every 15 minutes
+
+jobs:
+  generate-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to commit changes back to the repository
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install system dependencies for fonts
+        run: |
+          sudo apt-get update
+          # Automatically accept the EULA for Microsoft fonts
+          echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+          sudo apt-get install -y ttf-mscorefonts-installer
+          # Rebuild the font cache
+          sudo fc-cache -f -v
+
+      - name: Install Python dependencies
+        run: pip install -r image_generator/requirements.txt
+
+      - name: Generate the image file
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+          WEATHER_ENTITY: ${{ secrets.WEATHER_ENTITY }}
+          CALENDAR_ENTITY: ${{ secrets.CALENDAR_ENTITY }}
+        run: python image_generator/app.py
+
+      - name: Commit and push the updated image
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "feat: Update dashboard image"
+          file_pattern: trmnl.png
+          commit_user_name: github-actions[bot]
+          commit_user_email: github-actions[bot]@users.noreply.github.com
+          commit_author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
