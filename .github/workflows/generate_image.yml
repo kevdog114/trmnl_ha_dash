@@ -37,6 +37,8 @@ jobs:
           HA_TOKEN: ${{ secrets.HA_TOKEN }}
           WEATHER_ENTITY: ${{ secrets.WEATHER_ENTITY }}
           CALENDAR_ENTITY: ${{ secrets.CALENDAR_ENTITY }}
+          AI_INSTRUCTIONS: ${{ vars.AI_INSTRUCTIONS }}
+          AI_ENTITY_ID: ${{ secrets.AI_ENTITY_ID }}
         run: python image_generator/app.py
 
       - name: Generate redirect JSON

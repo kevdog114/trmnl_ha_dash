@@ -1,6 +1,7 @@
 import os
 import io
 import requests
+import textwrap
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -11,6 +12,8 @@ HA_URL = os.environ.get("HA_URL")
 HA_TOKEN = os.environ.get("HA_TOKEN")
 WEATHER_ENTITY = os.environ.get("WEATHER_ENTITY")
 CALENDAR_ENTITY = os.environ.get("CALENDAR_ENTITY")
+AI_INSTRUCTIONS = os.environ.get("AI_INSTRUCTIONS")
+AI_ENTITY_ID = os.environ.get("AI_ENTITY_ID")
 OUTPUT_PATH = "trmnl.png"
 
 # --- Image Settings ---
@@ -87,6 +90,20 @@ def get_ha_forecast(entity_id):
     return post_ha_data(
         "services/weather/get_forecasts",
         {"entity_id": entity_id, "type": "twice_daily"},
+        return_response=True,
+    )
+
+def get_ai_task_data(entity_id, instructions):
+    """Calls the ai_task.generate_data service."""
+    if not entity_id or not instructions:
+        return None
+    return post_ha_data(
+        "services/ai_task/generate_data",
+        {
+            "entity_id": entity_id,
+            "task_name": "Interesting Fact", # This can be customized if needed
+            "instructions": instructions,
+        },
         return_response=True,
     )
 
@@ -238,11 +255,49 @@ def generate_image():
         draw.text((450, 30), "Calendar Unavailable", font=font_bold, fill=RED_COLOR)
         print(f"Error getting calendar: {e}")
 
+    # --- Draw AI Task Response (Bottom) ---
+    try:
+        if AI_ENTITY_ID and AI_INSTRUCTIONS:
+            ai_data = get_ai_task_data(AI_ENTITY_ID, AI_INSTRUCTIONS)
+            if ai_data and "service_response" in ai_data:
+                # The actual response is nested within the service_response object
+                service_response = ai_data.get("service_response", {})
+                ai_text = service_response.get("response", "No response from AI.")
+
+                # --- Text Wrapping ---
+                font_ai = get_font(20)
+                # Character width is an estimate, adjust as needed
+                char_width_estimate = 10
+                wrap_width = IMG_WIDTH // char_width_estimate
+
+                wrapped_text = textwrap.fill(ai_text, width=wrap_width)
+
+                # --- Drawing Text ---
+                text_bbox = draw.textbbox((0, 0), wrapped_text, font=font_ai)
+                text_height = text_bbox[3] - text_bbox[1]
+
+                # Position it at the bottom, with some padding
+                y_pos = IMG_HEIGHT - text_height - 20
+
+                # Center the text block horizontally
+                text_width = text_bbox[2] - text_bbox[0]
+                x_pos = (IMG_WIDTH - text_width) / 2
+
+                draw.text((x_pos, y_pos), wrapped_text, font=font_ai, fill=FONT_COLOR, align="center")
+
+    except Exception as e:
+        print(f"Error getting or drawing AI task data: {e}")
+        # Optionally draw an error on the image
+        error_font = get_font(18)
+        draw.text((30, IMG_HEIGHT - 40), "AI Task Unavailable", font=error_font, fill=RED_COLOR)
+
+
     # --- Save image to file ---
     img.save(OUTPUT_PATH)
     print(f"Image saved to {OUTPUT_PATH}")
 
 if __name__ == "__main__":
+    # AI variables are optional, so they are not included in the check
     if not all([HA_URL, HA_TOKEN, WEATHER_ENTITY, CALENDAR_ENTITY]):
         raise ValueError("One or more required environment variables are not set.")
     generate_image()
