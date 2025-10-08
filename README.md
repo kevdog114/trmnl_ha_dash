@@ -3,7 +3,7 @@
 This repository contains configurations for the `trmnl` e-paper display, integrated with Home Assistant. It offers two distinct modes of operation:
 
 1.  **Standalone ESPHome Display:** The default `trmnl.yaml` configuration runs directly on the ESP32 device. It fetches the time from Home Assistant and displays it.
-2.  **Dynamic Image Generator (for `trmnl` plugins):** A separate Python service that generates a dynamic image with weather and calendar data from Home Assistant. This image is designed to be used with the `trmnl` redirect plugin.
+2.  **Dynamic Image via GitHub Actions:** A Python script, run automatically by a GitHub Action, generates a dynamic image with weather and calendar data from Home Assistant. This image (`trmnl.png`) is committed back to the repository and can be displayed by your `trmnl` device.
 
 ---
 
@@ -21,66 +21,44 @@ This is the default mode. The configuration is defined in `trmnl.yaml`.
 
 ---
 
-## Option 2: Dynamic Image Generator Service
+## Option 2: Dynamic Image via GitHub Actions
 
-This is an advanced option that provides a richer display by offloading the image generation to a separate web service. The service fetches weather and calendar information from your Home Assistant instance and renders it into a PNG image.
+This option uses a Python script and a GitHub Action to automatically generate and update an image (`trmnl.png`) in this repository. The image contains weather and calendar information from your Home Assistant instance.
 
 ### Features
-- **Left Side:** Displays the current weather forecast (current temperature, high/low, and condition).
-- **Right Side:** Displays upcoming calendar events.
-- Designed to be used with the `trmnl` redirect plugin, which points to this service's URL.
+- **Automated:** A GitHub Action runs every 15 minutes to refresh the image.
+- **Serverless:** No need to run your own web server or Docker container.
+- **Rich Display:**
+    - **Left Side:** Displays the current weather forecast.
+    - **Right Side:** Displays upcoming calendar events.
 
 ### Setup and Configuration
 
-The image generator is a Python Flask application located in the `image_generator/` directory. It is designed to be run as a Docker container.
+The image generation is handled by the script in `image_generator/app.py`. To make it work, you must configure secrets in your GitHub repository.
 
-**1. Configure Your Secrets:**
+**1. Create GitHub Repository Secrets:**
 
-You must provide your Home Assistant details to the service via environment variables. A template is provided in `image_generator/.env.example`.
+In your forked repository on GitHub, go to **Settings > Secrets and variables > Actions**. Create the following four repository secrets:
 
-First, copy the example file to a new `.env` file:
-```bash
-cp image_generator/.env.example image_generator/.env
-```
+-   `HA_URL`: The full public URL to your Home Assistant instance (e.g., `https://my-home.duckdns.org`).
+-   `HA_TOKEN`: A Long-Lived Access Token for the Home Assistant API.
+-   `WEATHER_ENTITY`: The entity ID for your weather forecast (e.g., `weather.home`).
+-   `CALENDAR_ENTITY`: The entity ID for the calendar you want to display (e.g., `calendar.birthdays`).
 
-Next, edit `image_generator/.env` with your specific details:
+**2. Enable GitHub Actions:**
 
-```ini
-# Home Assistant Configuration
-HA_URL=http://homeassistant.local:8123
-HA_TOKEN=YOUR_LONG_LIVED_ACCESS_TOKEN
-WEATHER_ENTITY=weather.your_weather_entity
-CALENDAR_ENTITY=calendar.your_calendar_entity
-```
+If you forked this repository, you may need to enable GitHub Actions. Go to the **Actions** tab in your repository and enable them if prompted.
 
-- `HA_URL`: The full URL to your Home Assistant instance.
-- `HA_TOKEN`: A Long-Lived Access Token for the Home Assistant API.
-- `WEATHER_ENTITY`: The entity ID for your weather forecast.
-- `CALENDAR_ENTITY`: The entity ID for the calendar you want to display.
+**3. Trigger the Action:**
 
-**Important:** The `.env` file contains sensitive information. It is included in `.gitignore` to prevent accidental commits.
-
-**2. Build and Run the Docker Container:**
-
-Navigate to the root of the repository and run the following commands:
-
-```bash
-# 1. Build the Docker image
-docker build -t trmnl-image-generator -f image_generator/Dockerfile .
-
-# 2. Run the container
-docker run -d --name trmnl-server --restart always -p 5001:5001 --env-file image_generator/.env trmnl-image-generator
-```
-This will:
-- Build the Docker image with the tag `trmnl-image-generator`.
-- Start a container named `trmnl-server` in detached mode (`-d`).
-- Set it to always restart.
-- Map port 5001 on your host to port 5001 in the container.
-- Load the environment variables from your `.env` file.
+The action will run automatically every 15 minutes. You can also trigger it manually by going to the **Actions** tab, clicking on the **Generate Dashboard Image** workflow, and using the **Run workflow** button.
 
 ### Usage
 
-Once the container is running, the image will be available at:
-`http://<IP_ADDRESS_OF_DOCKER_HOST>:5001/image.png`
+Once the action has run successfully, a `trmnl.png` file will be present in the root of your repository. To use this image with your `trmnl` device, you need its raw URL.
 
-You can use this URL with the `trmnl` redirect plugin to display it on your device.
+You can get the URL by navigating to the `trmnl.png` file on GitHub and clicking the **Download** or **Raw** button. The URL will look something like this:
+
+`https://raw.githubusercontent.com/YOUR_USERNAME/trmnl_ha_dash/main/trmnl.png`
+
+Use this URL with the `trmnl` redirect plugin to display it on your device.
