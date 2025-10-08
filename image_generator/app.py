@@ -18,6 +18,29 @@ BG_COLOR = "white"
 FONT_COLOR = "black"
 RED_COLOR = "red"
 
+# --- Icon Mapping ---
+# Maps HA weather conditions to Material Design Icon codepoints.
+# Cheatsheet: https://github.com/Templarian/MaterialDesign-Font/blob/master/cheatsheet.html
+WEATHER_ICON_MAP = {
+    "clear-night": "\U000F0594",  # weather-night
+    "cloudy": "\U000F0595",  # weather-cloudy
+    "exceptional": "\U000F0B91",  # weather-sunny-alert
+    "fog": "\U000F0596",  # weather-fog
+    "hail": "\U000F0597",  # weather-hail
+    "lightning": "\U000F0598",  # weather-lightning
+    "lightning-rainy": "\U000F067E",  # weather-lightning-rainy
+    "partlycloudy": "\U000F0599",  # weather-partly-cloudy
+    "pouring": "\U000F059A",  # weather-pouring
+    "rainy": "\U000F059B",  # weather-rainy
+    "snowy": "\U000F059C",  # weather-snowy
+    "snowy-rainy": "\U000F067F",  # weather-snowy-rainy
+    "sunny": "\U000F059D",  # weather-sunny
+    "windy": "\U000F059E",  # weather-windy
+    "windy-variant": "\U000F059F",  # weather-windy-variant
+}
+DEFAULT_ICON = "\U000F0B91" # weather-sunny-alert for unknown conditions
+
+
 def get_font(size, bold=False):
     """Loads a font, falling back to default if not found."""
     try:
@@ -26,6 +49,15 @@ def get_font(size, bold=False):
     except IOError:
         print(f"Arial font not found, falling back to default font.")
         return ImageFont.load_default()
+
+def get_icon_font(size):
+    """Loads the icon font."""
+    try:
+        return ImageFont.truetype("image_generator/MaterialDesignIconsDesktop.ttf", size)
+    except IOError:
+        print("Icon font not found, using default font for icons.")
+        return ImageFont.load_default()
+
 
 def get_ha_data(endpoint):
     """Fetches data from Home Assistant API."""
@@ -67,9 +99,18 @@ def generate_image():
     img = Image.new("RGB", (IMG_WIDTH, IMG_HEIGHT), color=BG_COLOR)
     draw = ImageDraw.Draw(img)
 
+    # --- Fonts ---
+    font_date = get_font(36, bold=True)
     font_regular = get_font(24)
     font_bold = get_font(24, bold=True)
     font_small = get_font(18)
+    icon_font = get_icon_font(80) # Larger size for the icon
+
+    # --- Draw Date ---
+    today = datetime.now()
+    date_text = today.strftime("%A, %B %d, %Y")
+    draw.text((30, 20), date_text, font=font_date, fill=FONT_COLOR)
+
 
     # --- Draw Weather (Left Side) ---
     try:
@@ -106,15 +147,20 @@ def generate_image():
             if temp_low is None and temp_high is not None:
                 temp_low = temp_high
 
-        draw.text((30, 30), "Weather", font=font_bold, fill=FONT_COLOR)
-        draw.text((30, 70), f"Now: {temp}°", font=font_regular, fill=FONT_COLOR)
+        # Weather Icon
+        weather_icon = WEATHER_ICON_MAP.get(condition.lower(), DEFAULT_ICON) if condition else DEFAULT_ICON
+        draw.text((40, 80), weather_icon, font=icon_font, fill=FONT_COLOR)
+
+        # Weather Text
+        y_start = 180
+        draw.text((30, y_start), f"Now: {temp}°", font=font_regular, fill=FONT_COLOR)
         high_text = f"High: {temp_high}°" if temp_high is not None else "High: N/A"
         low_text = f"Low: {temp_low}°" if temp_low is not None else "Low: N/A"
-        draw.text((30, 110), high_text, font=font_regular, fill=RED_COLOR)
-        draw.text((30, 150), low_text, font=font_regular, fill=FONT_COLOR)
-        draw.text((30, 190), f"Condition: {condition}", font=font_regular, fill=FONT_COLOR)
+        draw.text((30, y_start + 40), high_text, font=font_regular, fill=RED_COLOR)
+        draw.text((30, y_start + 80), low_text, font=font_regular, fill=FONT_COLOR)
+
     except Exception as e:
-        draw.text((30, 30), "Weather Unavailable", font=font_bold, fill=RED_COLOR)
+        draw.text((30, 80), "Weather Unavailable", font=font_bold, fill=RED_COLOR)
         print(f"Error getting weather: {e}")
 
     # --- Draw Calendar (Right Side) ---
