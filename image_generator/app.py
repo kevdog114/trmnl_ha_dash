@@ -2,6 +2,7 @@ import os
 import requests
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime, timedelta
+from collections import defaultdict
 
 # --- Configuration ---
 HA_URL = os.environ.get("HA_URL")
@@ -121,25 +122,48 @@ def generate_image():
         if not CALENDAR_ENTITY:
             raise ValueError("CALENDAR_ENTITY is not set.")
         start_date = datetime.utcnow().isoformat()
-        end_date = (datetime.utcnow() + timedelta(days=1)).isoformat()
+        end_date = (datetime.utcnow() + timedelta(days=4)).isoformat()
         calendar_data = get_ha_data(f"calendars/{CALENDAR_ENTITY}?start={start_date}Z&end={end_date}Z")
 
         draw.text((450, 30), "Upcoming Events", font=font_bold, fill=FONT_COLOR)
         y_pos = 70
+
         if calendar_data:
-            for event in calendar_data[:8]: # Display top 8 events
-                summary = event.get("summary", "No Title")
-                start = event.get("start", {}).get("dateTime", "")
+            # Group events by date
+            events_by_date = defaultdict(list)
+            for event in calendar_data:
+                start_str = event.get("start", {}).get("dateTime")
+                if not start_str: # Skip all-day events for simplicity in this layout
+                    continue
+                start_dt = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+                event_date = start_dt.date()
+                events_by_date[event_date].append(event)
 
-                if start:
-                    start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+            # Sort dates and display events
+            sorted_dates = sorted(events_by_date.keys())
+            font_date = get_font(22, bold=True)
+            font_event = get_font(18)
+
+            for event_date in sorted_dates:
+                if y_pos > IMG_HEIGHT - 50: break # Stop if we run out of space
+
+                # Display the date
+                draw.text((450, y_pos), event_date.strftime("%A, %B %d"), font=font_date, fill=FONT_COLOR)
+                y_pos += 30
+
+                # Display events for that date
+                for event in events_by_date[event_date]:
+                    if y_pos > IMG_HEIGHT - 40: break
+                    summary = event.get("summary", "No Title")
+                    start_str = event.get("start", {}).get("dateTime")
+                    start_dt = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
                     time_str = start_dt.strftime("%I:%M %p")
-                    event_text = f"- {summary} at {time_str}"
-                else: # All-day event
-                    event_text = f"- {summary}"
 
-                draw.text((450, y_pos), event_text, font=font_small, fill=FONT_COLOR)
-                y_pos += 35
+                    event_text = f"- {summary} at {time_str}"
+                    draw.text((460, y_pos), event_text, font=font_event, fill=FONT_COLOR)
+                    y_pos += 25
+                y_pos += 10 # Add a little space between dates
+
         else:
             draw.text((450, 70), "No upcoming events.", font=font_regular, fill=FONT_COLOR)
     except Exception as e:
