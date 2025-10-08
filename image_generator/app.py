@@ -38,7 +38,7 @@ def get_ha_data(endpoint):
     response.raise_for_status()
     return response.json()
 
-def post_ha_data(endpoint, data):
+def post_ha_data(endpoint, data, return_response=False):
     """Posts data to Home Assistant API."""
     if not HA_TOKEN:
         raise ValueError("HA_TOKEN is not set.")
@@ -46,7 +46,10 @@ def post_ha_data(endpoint, data):
         "Authorization": f"Bearer {HA_TOKEN}",
         "content-type": "application/json",
     }
-    response = requests.post(f"{HA_URL}/api/{endpoint}", headers=headers, json=data)
+    url = f"{HA_URL}/api/{endpoint}"
+    if return_response:
+        url += "?return_response"
+    response = requests.post(url, headers=headers, json=data)
     response.raise_for_status()
     return response.json()
 
@@ -55,6 +58,7 @@ def get_ha_forecast(entity_id):
     return post_ha_data(
         "services/weather/get_forecasts",
         {"entity_id": entity_id, "type": "twice_daily"},
+        return_response=True,
     )
 
 def generate_image():
@@ -77,7 +81,8 @@ def generate_image():
 
         # Fetch forecast
         forecast_data = get_ha_forecast(WEATHER_ENTITY)
-        forecast_list = forecast_data.get(WEATHER_ENTITY, {}).get("forecast", [])
+        service_response = forecast_data.get("service_response", {})
+        forecast_list = service_response.get(WEATHER_ENTITY, {}).get("forecast", [])
 
         temp_high = None
         temp_low = None
