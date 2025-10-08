@@ -38,6 +38,25 @@ def get_ha_data(endpoint):
     response.raise_for_status()
     return response.json()
 
+def post_ha_data(endpoint, data):
+    """Posts data to Home Assistant API."""
+    if not HA_TOKEN:
+        raise ValueError("HA_TOKEN is not set.")
+    headers = {
+        "Authorization": f"Bearer {HA_TOKEN}",
+        "content-type": "application/json",
+    }
+    response = requests.post(f"{HA_URL}/api/{endpoint}", headers=headers, json=data)
+    response.raise_for_status()
+    return response.json()
+
+def get_ha_forecast(entity_id):
+    """Fetches weather forecast using the weather.get_forecasts service."""
+    return post_ha_data(
+        "services/weather/get_forecasts",
+        {"entity_id": entity_id, "type": "daily"},
+    )
+
 def generate_image():
     """Creates the image with weather and calendar data and saves it to a file."""
     img = Image.new("RGB", (IMG_WIDTH, IMG_HEIGHT), color=BG_COLOR)
@@ -51,9 +70,15 @@ def generate_image():
     try:
         if not WEATHER_ENTITY:
             raise ValueError("WEATHER_ENTITY is not set.")
+
+        # Fetch current weather state for current temperature
         weather_data = get_ha_data(f"states/{WEATHER_ENTITY}")
-        forecast = weather_data.get("attributes", {}).get("forecast", [])[0]
         temp = weather_data.get("attributes", {}).get("temperature")
+
+        # Fetch forecast
+        forecast_data = get_ha_forecast(WEATHER_ENTITY)
+        forecast = forecast_data.get(WEATHER_ENTITY, {}).get("forecast", [])[0]
+
         condition = forecast.get("condition")
         temp_high = forecast.get("temperature")
         temp_low = forecast.get("templow")
