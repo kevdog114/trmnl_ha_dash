@@ -112,7 +112,10 @@ def generate_image():
     # --- Draw Date ---
     today = datetime.now()
     date_text = today.strftime("%A, %B %d, %Y")
-    draw.text((30, 20), date_text, font=font_date, fill=FONT_COLOR)
+    # Correctly calculate text width using textbbox and center it
+    text_bbox = draw.textbbox((0, 0), date_text, font=font_date)
+    text_width = text_bbox[2] - text_bbox[0]
+    draw.text(((IMG_WIDTH - text_width) / 2, 20), date_text, font=font_date, fill=FONT_COLOR)
 
 
     # --- Draw Weather (Left Side) ---
@@ -150,12 +153,16 @@ def generate_image():
             if temp_low is None and temp_high is not None:
                 temp_low = temp_high
 
-        # Weather Icon
+        # Weather Icon & Condition Text
         weather_icon = WEATHER_ICON_MAP.get(condition.lower(), DEFAULT_ICON) if condition else DEFAULT_ICON
-        draw.text((40, 80), weather_icon, font=icon_font, fill=FONT_COLOR)
+        draw.text((40, 90), weather_icon, font=icon_font, fill=FONT_COLOR)
+        if condition != "Unavailable":
+             # Display condition text next to the icon, vertically centered
+            condition_text = condition.replace("-", " ").title()
+            draw.text((140, 125), condition_text, font=font_bold, fill=FONT_COLOR)
 
-        # Weather Text
-        y_start = 180
+        # Weather Numerical Data
+        y_start = 200
         draw.text((30, y_start), f"Now: {temp}°", font=font_regular, fill=FONT_COLOR)
         high_text = f"High: {temp_high}°" if temp_high is not None else "High: N/A"
         low_text = f"Low: {temp_low}°" if temp_low is not None else "Low: N/A"
@@ -174,8 +181,9 @@ def generate_image():
         end_date = (datetime.utcnow() + timedelta(days=4)).isoformat()
         calendar_data = get_ha_data(f"calendars/{CALENDAR_ENTITY}?start={start_date}Z&end={end_date}Z")
 
-        draw.text((450, 30), "Upcoming Events", font=font_bold, fill=FONT_COLOR)
-        y_pos = 70
+        # Move "Upcoming Events" down to avoid overlap
+        draw.text((450, 80), "Upcoming Events", font=font_bold, fill=FONT_COLOR)
+        y_pos = 120
 
         if calendar_data:
             # Group events by date
