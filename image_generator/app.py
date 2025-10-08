@@ -53,7 +53,10 @@ def get_font(size, bold=False):
 def get_icon_font(size):
     """Loads the icon font."""
     try:
-        return ImageFont.truetype("image_generator/MaterialDesignIconsDesktop.ttf", size)
+        # Construct an absolute path to the font file
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        font_path = os.path.join(script_dir, "MaterialDesignIconsDesktop.ttf")
+        return ImageFont.truetype(font_path, size)
     except IOError:
         print("Icon font not found, using default font for icons.")
         return ImageFont.load_default()
