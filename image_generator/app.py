@@ -54,7 +54,7 @@ def get_ha_forecast(entity_id):
     """Fetches weather forecast using the weather.get_forecasts service."""
     return post_ha_data(
         "services/weather/get_forecasts",
-        {"entity_id": entity_id, "type": "daily"},
+        {"entity_id": entity_id, "type": "twice_daily"},
     )
 
 def generate_image():
@@ -77,16 +77,35 @@ def generate_image():
 
         # Fetch forecast
         forecast_data = get_ha_forecast(WEATHER_ENTITY)
-        forecast = forecast_data.get(WEATHER_ENTITY, {}).get("forecast", [])[0]
+        forecast_list = forecast_data.get(WEATHER_ENTITY, {}).get("forecast", [])
 
-        condition = forecast.get("condition")
-        temp_high = forecast.get("temperature")
-        temp_low = forecast.get("templow")
+        temp_high = None
+        temp_low = None
+        condition = "Unavailable"
+
+        if forecast_list:
+            condition = forecast_list[0].get("condition")
+
+            day_forecast = next((f for f in forecast_list if f.get("is_daytime")), None)
+            night_forecast = next((f for f in forecast_list if not f.get("is_daytime")), None)
+
+            if day_forecast:
+                temp_high = day_forecast.get("temperature")
+            if night_forecast:
+                temp_low = night_forecast.get("temperature")
+
+            # Fallback if one is missing
+            if temp_high is None and temp_low is not None:
+                temp_high = temp_low
+            if temp_low is None and temp_high is not None:
+                temp_low = temp_high
 
         draw.text((30, 30), "Weather", font=font_bold, fill=FONT_COLOR)
         draw.text((30, 70), f"Now: {temp}°", font=font_regular, fill=FONT_COLOR)
-        draw.text((30, 110), f"High: {temp_high}°", font=font_regular, fill=RED_COLOR)
-        draw.text((30, 150), f"Low: {temp_low}°", font=font_regular, fill=FONT_COLOR)
+        high_text = f"High: {temp_high}°" if temp_high is not None else "High: N/A"
+        low_text = f"Low: {temp_low}°" if temp_low is not None else "Low: N/A"
+        draw.text((30, 110), high_text, font=font_regular, fill=RED_COLOR)
+        draw.text((30, 150), low_text, font=font_regular, fill=FONT_COLOR)
         draw.text((30, 190), f"Condition: {condition}", font=font_regular, fill=FONT_COLOR)
     except Exception as e:
         draw.text((30, 30), "Weather Unavailable", font=font_bold, fill=RED_COLOR)
