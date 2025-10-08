@@ -38,6 +38,25 @@ def get_ha_data(endpoint):
     response.raise_for_status()
     return response.json()
 
+def post_ha_data(endpoint, data):
+    """Posts data to Home Assistant API."""
+    if not HA_TOKEN:
+        raise ValueError("HA_TOKEN is not set.")
+    headers = {
+        "Authorization": f"Bearer {HA_TOKEN}",
+        "content-type": "application/json",
+    }
+    response = requests.post(f"{HA_URL}/api/{endpoint}", headers=headers, json=data)
+    response.raise_for_status()
+    return response.json()
+
+def get_ha_forecast(entity_id):
+    """Fetches weather forecast using the weather.get_forecasts service."""
+    return post_ha_data(
+        "services/weather/get_forecasts",
+        {"entity_id": entity_id, "type": "twice_daily"},
+    )
+
 def generate_image():
     """Creates the image with weather and calendar data and saves it to a file."""
     img = Image.new("RGB", (IMG_WIDTH, IMG_HEIGHT), color=BG_COLOR)
@@ -51,17 +70,42 @@ def generate_image():
     try:
         if not WEATHER_ENTITY:
             raise ValueError("WEATHER_ENTITY is not set.")
+
+        # Fetch current weather state for current temperature
         weather_data = get_ha_data(f"states/{WEATHER_ENTITY}")
-        forecast = weather_data.get("attributes", {}).get("forecast", [])[0]
         temp = weather_data.get("attributes", {}).get("temperature")
-        condition = forecast.get("condition")
-        temp_high = forecast.get("temperature")
-        temp_low = forecast.get("templow")
+
+        # Fetch forecast
+        forecast_data = get_ha_forecast(WEATHER_ENTITY)
+        forecast_list = forecast_data.get(WEATHER_ENTITY, {}).get("forecast", [])
+
+        temp_high = None
+        temp_low = None
+        condition = "Unavailable"
+
+        if forecast_list:
+            condition = forecast_list[0].get("condition")
+
+            day_forecast = next((f for f in forecast_list if f.get("is_daytime")), None)
+            night_forecast = next((f for f in forecast_list if not f.get("is_daytime")), None)
+
+            if day_forecast:
+                temp_high = day_forecast.get("temperature")
+            if night_forecast:
+                temp_low = night_forecast.get("temperature")
+
+            # Fallback if one is missing
+            if temp_high is None and temp_low is not None:
+                temp_high = temp_low
+            if temp_low is None and temp_high is not None:
+                temp_low = temp_high
 
         draw.text((30, 30), "Weather", font=font_bold, fill=FONT_COLOR)
         draw.text((30, 70), f"Now: {temp}°", font=font_regular, fill=FONT_COLOR)
-        draw.text((30, 110), f"High: {temp_high}°", font=font_regular, fill=RED_COLOR)
-        draw.text((30, 150), f"Low: {temp_low}°", font=font_regular, fill=FONT_COLOR)
+        high_text = f"High: {temp_high}°" if temp_high is not None else "High: N/A"
+        low_text = f"Low: {temp_low}°" if temp_low is not None else "Low: N/A"
+        draw.text((30, 110), high_text, font=font_regular, fill=RED_COLOR)
+        draw.text((30, 150), low_text, font=font_regular, fill=FONT_COLOR)
         draw.text((30, 190), f"Condition: {condition}", font=font_regular, fill=FONT_COLOR)
     except Exception as e:
         draw.text((30, 30), "Weather Unavailable", font=font_bold, fill=RED_COLOR)
