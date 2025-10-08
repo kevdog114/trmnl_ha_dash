@@ -1,8 +1,10 @@
 import os
+import io
 import requests
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime, timedelta
 from collections import defaultdict
+from material_icons import MaterialIcons
 
 # --- Configuration ---
 HA_URL = os.environ.get("HA_URL")
@@ -19,28 +21,30 @@ FONT_COLOR = "black"
 RED_COLOR = "red"
 
 # --- Icon Mapping ---
-# Maps HA weather conditions to Material Design Icon codepoints.
-# Cheatsheet: https://github.com/Templarian/MaterialDesign-Font/blob/master/cheatsheet.html
+# Maps HA weather conditions to Material Icon names.
+# Cheatsheet: https://marella.github.io/material-icons/demo/
 # Keys are normalized (lowercase, no hyphens) for consistent matching.
 WEATHER_ICON_MAP = {
-    "clearnight": "\U000F0594",  # weather-night
-    "cloudy": "\U000F0595",  # weather-cloudy
-    "exceptional": "\U000F0B91",  # weather-sunny-alert
-    "fog": "\U000F0596",  # weather-fog
-    "hail": "\U000F0597",  # weather-hail
-    "lightning": "\U000F0598",  # weather-lightning
-    "lightningrainy": "\U000F067E",  # weather-lightning-rainy
-    "partlycloudy": "\U000F0599",  # weather-partly-cloudy
-    "pouring": "\U000F059A",  # weather-pouring
-    "rainy": "\U000F059B",  # weather-rainy
-    "snowy": "\U000F059C",  # weather-snowy
-    "snowyrainy": "\U000F067F",  # weather-snowy-rainy
-    "sunny": "\U000F059D",  # weather-sunny
-    "windy": "\U000F059E",  # weather-windy
-    "windyvariant": "\U000F059F",  # weather-windy-variant
+    "clearnight": "nightlight",
+    "cloudy": "cloud",
+    "exceptional": "warning",
+    "fog": "cloud",
+    "hail": "grain",
+    "lightning": "flash_on",
+    "lightningrainy": "thunderstorm",
+    "partlycloudy": "partly_cloudy_day",
+    "pouring": "water_drop",
+    "rainy": "umbrella",
+    "snowy": "ac_unit",
+    "snowyrainy": "cloudy_snowing",
+    "sunny": "wb_sunny",
+    "windy": "air",
+    "windyvariant": "air",
 }
-DEFAULT_ICON = "\U000F0B91" # weather-sunny-alert for unknown conditions
+DEFAULT_ICON = "help_outline" # Icon for unknown conditions
 
+# Initialize the icon provider
+icons = MaterialIcons()
 
 def get_font(size, bold=False):
     """Loads a font, falling back to default if not found."""
@@ -50,18 +54,6 @@ def get_font(size, bold=False):
     except IOError:
         print(f"Arial font not found, falling back to default font.")
         return ImageFont.load_default()
-
-def get_icon_font(size):
-    """Loads the icon font."""
-    try:
-        # Construct an absolute path to the font file
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        font_path = os.path.join(script_dir, "MaterialDesignIconsDesktop.ttf")
-        return ImageFont.truetype(font_path, size)
-    except IOError:
-        print("Icon font not found, using default font for icons.")
-        return ImageFont.load_default()
-
 
 def get_ha_data(endpoint):
     """Fetches data from Home Assistant API."""
@@ -108,7 +100,6 @@ def generate_image():
     font_regular = get_font(24)
     font_bold = get_font(24, bold=True)
     font_small = get_font(18)
-    icon_font = get_icon_font(80) # Larger size for the icon
 
     # --- Draw Date ---
     today = datetime.now()
@@ -155,9 +146,19 @@ def generate_image():
                 temp_low = temp_high
 
         # Weather Icon & Condition Text
-        normalized_condition = condition.lower().replace("-", "")
-        weather_icon = WEATHER_ICON_MAP.get(normalized_condition, DEFAULT_ICON) if condition else DEFAULT_ICON
-        draw.text((40, 90), weather_icon, font=icon_font, fill=FONT_COLOR)
+        normalized_condition = condition.lower().replace("-", "") if condition else ""
+        icon_name = WEATHER_ICON_MAP.get(normalized_condition, DEFAULT_ICON)
+
+        try:
+            # Get the icon from the library
+            icon_bytes = icons.get(icon_name, size=80, color=FONT_COLOR)
+            icon_image = Image.open(io.BytesIO(icon_bytes))
+            # Paste the icon, using the icon's alpha channel as a mask for transparency
+            img.paste(icon_image, (40, 90), icon_image)
+        except Exception as e:
+            print(f"Could not load or paste icon '{icon_name}': {e}")
+            draw.text((40, 90), "?", font=font_bold, fill=RED_COLOR) # Fallback character
+
         if condition != "Unavailable":
              # Display condition text next to the icon, vertically centered
             condition_text = condition.replace("-", " ").title()

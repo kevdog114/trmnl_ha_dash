@@ -1,2 +1,4 @@
 requests
 Pillow
+python-material-icons
+cairosvg
