@@ -21,22 +21,23 @@ RED_COLOR = "red"
 # --- Icon Mapping ---
 # Maps HA weather conditions to Material Design Icon codepoints.
 # Cheatsheet: https://github.com/Templarian/MaterialDesign-Font/blob/master/cheatsheet.html
+# Keys are normalized (lowercase, no hyphens) for consistent matching.
 WEATHER_ICON_MAP = {
-    "clear-night": "\U000F0594",  # weather-night
+    "clearnight": "\U000F0594",  # weather-night
     "cloudy": "\U000F0595",  # weather-cloudy
     "exceptional": "\U000F0B91",  # weather-sunny-alert
     "fog": "\U000F0596",  # weather-fog
     "hail": "\U000F0597",  # weather-hail
     "lightning": "\U000F0598",  # weather-lightning
-    "lightning-rainy": "\U000F067E",  # weather-lightning-rainy
+    "lightningrainy": "\U000F067E",  # weather-lightning-rainy
     "partlycloudy": "\U000F0599",  # weather-partly-cloudy
     "pouring": "\U000F059A",  # weather-pouring
     "rainy": "\U000F059B",  # weather-rainy
     "snowy": "\U000F059C",  # weather-snowy
-    "snowy-rainy": "\U000F067F",  # weather-snowy-rainy
+    "snowyrainy": "\U000F067F",  # weather-snowy-rainy
     "sunny": "\U000F059D",  # weather-sunny
     "windy": "\U000F059E",  # weather-windy
-    "windy-variant": "\U000F059F",  # weather-windy-variant
+    "windyvariant": "\U000F059F",  # weather-windy-variant
 }
 DEFAULT_ICON = "\U000F0B91" # weather-sunny-alert for unknown conditions
 
@@ -154,7 +155,8 @@ def generate_image():
                 temp_low = temp_high
 
         # Weather Icon & Condition Text
-        weather_icon = WEATHER_ICON_MAP.get(condition.lower(), DEFAULT_ICON) if condition else DEFAULT_ICON
+        normalized_condition = condition.lower().replace("-", "")
+        weather_icon = WEATHER_ICON_MAP.get(normalized_condition, DEFAULT_ICON) if condition else DEFAULT_ICON
         draw.text((40, 90), weather_icon, font=icon_font, fill=FONT_COLOR)
         if condition != "Unavailable":
              # Display condition text next to the icon, vertically centered
