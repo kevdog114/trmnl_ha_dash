@@ -127,12 +127,16 @@ def generate_image():
             # Group events by date
             events_by_date = defaultdict(list)
             for event in calendar_data:
-                start_str = event.get("start", {}).get("dateTime")
-                if not start_str: # Skip all-day events for simplicity in this layout
-                    continue
-                start_dt = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
-                event_date = start_dt.date()
-                events_by_date[event_date].append(event)
+                start = event.get("start", {})
+                event_date = None
+                if "dateTime" in start and start["dateTime"]:
+                    start_dt = datetime.fromisoformat(start["dateTime"].replace("Z", "+00:00"))
+                    event_date = start_dt.date()
+                elif "date" in start and start["date"]:
+                    event_date = datetime.fromisoformat(start["date"]).date()
+
+                if event_date:
+                    events_by_date[event_date].append(event)
 
             # Sort dates and display events
             sorted_dates = sorted(events_by_date.keys())
@@ -150,11 +154,15 @@ def generate_image():
                 for event in events_by_date[event_date]:
                     if y_pos > IMG_HEIGHT - 40: break
                     summary = event.get("summary", "No Title")
-                    start_str = event.get("start", {}).get("dateTime")
-                    start_dt = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
-                    time_str = start_dt.strftime("%I:%M %p")
+                    start = event.get("start", {})
 
-                    event_text = f"- {summary} at {time_str}"
+                    if "dateTime" in start and start["dateTime"]:
+                        start_dt = datetime.fromisoformat(start["dateTime"].replace("Z", "+00:00"))
+                        time_str = start_dt.strftime("%I:%M %p")
+                        event_text = f"- {summary} at {time_str}"
+                    else: # All-day event
+                        event_text = f"- {summary}"
+
                     draw.text((460, y_pos), event_text, font=font_event, fill=FONT_COLOR)
                     y_pos += 25
                 y_pos += 10 # Add a little space between dates
