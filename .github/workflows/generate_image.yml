@@ -53,3 +53,21 @@ jobs:
           commit_user_name: github-actions[bot]
           commit_user_email: github-actions[bot]@users.noreply.github.com
           commit_author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+
+      - name: Setup Pages
+        # This action is used to configure the GitHub Pages deployment
+        # It prepares the environment for the artifact upload and deployment steps.
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        # This action uploads the content that will be deployed to GitHub Pages.
+        # The path should point to the directory that GitHub Pages should serve.
+        # If trmnl_redirect.json is at the root of your repo, path: '.' is correct.
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.' 
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        # This action deploys the artifact uploaded in the previous step to GitHub Pages.
+        uses: actions/deploy-pages@v4
