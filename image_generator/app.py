@@ -17,11 +17,10 @@ AI_ENTITY_ID = os.environ.get("AI_ENTITY_ID")
 OUTPUT_PATH = "trmnl.png"
 
 # --- Image Settings ---
-IMG_WIDTH = 880
-IMG_HEIGHT = 528
+IMG_WIDTH = 800
+IMG_HEIGHT = 480
 BG_COLOR = "white"
 FONT_COLOR = "black"
-RED_COLOR = "red"
 
 # --- Icon Mapping ---
 # Maps HA weather conditions to Material Icon names.
@@ -109,7 +108,7 @@ def get_ai_task_data(entity_id, instructions):
 
 def generate_image():
     """Creates the image with weather and calendar data and saves it to a file."""
-    img = Image.new("RGB", (IMG_WIDTH, IMG_HEIGHT), color=BG_COLOR)
+    img = Image.new("1", (IMG_WIDTH, IMG_HEIGHT), color=BG_COLOR)
     draw = ImageDraw.Draw(img)
 
     # --- Fonts ---
@@ -174,7 +173,7 @@ def generate_image():
             img.paste(icon_image, (40, 90), icon_image)
         except Exception as e:
             print(f"Could not load or paste icon '{icon_name}': {e}")
-            draw.text((40, 90), "?", font=font_bold, fill=RED_COLOR) # Fallback character
+            draw.text((40, 90), "?", font=font_bold, fill=FONT_COLOR) # Fallback character
 
         if condition != "Unavailable":
              # Display condition text next to the icon, vertically centered
@@ -186,11 +185,11 @@ def generate_image():
         draw.text((30, y_start), f"Now: {temp}°", font=font_regular, fill=FONT_COLOR)
         high_text = f"High: {temp_high}°" if temp_high is not None else "High: N/A"
         low_text = f"Low: {temp_low}°" if temp_low is not None else "Low: N/A"
-        draw.text((30, y_start + 40), high_text, font=font_regular, fill=RED_COLOR)
+        draw.text((30, y_start + 40), high_text, font=font_regular, fill=FONT_COLOR)
         draw.text((30, y_start + 80), low_text, font=font_regular, fill=FONT_COLOR)
 
     except Exception as e:
-        draw.text((30, 80), "Weather Unavailable", font=font_bold, fill=RED_COLOR)
+        draw.text((30, 80), "Weather Unavailable", font=font_bold, fill=FONT_COLOR)
         print(f"Error getting weather: {e}")
 
     # --- Draw Calendar (Right Side) ---
@@ -252,7 +251,7 @@ def generate_image():
         else:
             draw.text((450, 70), "No upcoming events.", font=font_regular, fill=FONT_COLOR)
     except Exception as e:
-        draw.text((450, 30), "Calendar Unavailable", font=font_bold, fill=RED_COLOR)
+        draw.text((450, 30), "Calendar Unavailable", font=font_bold, fill=FONT_COLOR)
         print(f"Error getting calendar: {e}")
 
     # --- Draw AI Task Response (Bottom) ---
@@ -311,7 +310,7 @@ def generate_image():
         text_bbox = draw.textbbox((0, 0), error_text, font=error_font)
         text_width = text_bbox[2] - text_bbox[0]
         x_pos = (IMG_WIDTH - text_width) / 2
-        draw.text((x_pos, IMG_HEIGHT - 40), error_text, font=error_font, fill=RED_COLOR)
+        draw.text((x_pos, IMG_HEIGHT - 40), error_text, font=error_font, fill=FONT_COLOR)
 
 
     # --- Save image to file ---
