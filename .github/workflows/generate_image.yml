@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # Required to commit changes back to the repository
+      pages: write    # To deploy to GitHub Pages
+      id-token: write # To authenticate with GitHub Pages
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
