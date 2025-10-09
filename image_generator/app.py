@@ -268,7 +268,8 @@ def generate_image():
             # Case 1: Direct service response (e.g., from a conversation agent)
             if isinstance(ai_data, dict) and "service_response" in ai_data:
                 service_response = ai_data.get("service_response", {})
-                ai_text_to_display = service_response.get("response")
+                # The actual text can be in 'response' or 'data' depending on the agent
+                ai_text_to_display = service_response.get("response") or service_response.get("data")
 
             # Case 2: List of updated entities (e.g., from a task that updates its own state)
             elif isinstance(ai_data, list):
