@@ -256,40 +256,61 @@ def generate_image():
         print(f"Error getting calendar: {e}")
 
     # --- Draw AI Task Response (Bottom) ---
+    ai_text_to_display = None
     try:
         if AI_ENTITY_ID and AI_INSTRUCTIONS:
             ai_data = get_ai_task_data(AI_ENTITY_ID, AI_INSTRUCTIONS)
-            if ai_data and "service_response" in ai_data:
-                # The actual response is nested within the service_response object
+            print(f"Raw AI Task Response: {ai_data}") # Log the raw output
+
+            # The response from HA can be a direct service response or a list of updated entities.
+            # We need to handle both cases to robustly find the AI's output.
+
+            # Case 1: Direct service response (e.g., from a conversation agent)
+            if isinstance(ai_data, dict) and "service_response" in ai_data:
                 service_response = ai_data.get("service_response", {})
-                ai_text = service_response.get("response", "No response from AI.")
+                ai_text_to_display = service_response.get("response")
 
-                # --- Text Wrapping ---
-                font_ai = get_font(20)
-                # Character width is an estimate, adjust as needed
-                char_width_estimate = 10
-                wrap_width = IMG_WIDTH // char_width_estimate
+            # Case 2: List of updated entities (e.g., from a task that updates its own state)
+            elif isinstance(ai_data, list):
+                entity_state = next((s for s in ai_data if s.get("entity_id") == AI_ENTITY_ID), None)
+                if entity_state:
+                    # The response is often stored in an attribute of the entity
+                    ai_text_to_display = entity_state.get("attributes", {}).get("response")
 
-                wrapped_text = textwrap.fill(ai_text, width=wrap_width)
+            if not ai_text_to_display:
+                # If we got data but couldn't parse it, raise an error to show "Unavailable"
+                if ai_data is not None:
+                     raise ValueError(f"Could not find a valid AI response in the data: {ai_data}")
 
-                # --- Drawing Text ---
-                text_bbox = draw.textbbox((0, 0), wrapped_text, font=font_ai)
-                text_height = text_bbox[3] - text_bbox[1]
+        if ai_text_to_display:
+            # --- Text Wrapping and Drawing ---
+            font_ai = get_font(20)
+            # Estimate wrap width based on font and image size
+            # This is an approximation; a more accurate way would be to measure character width
+            avg_char_width = 11
+            wrap_width = (IMG_WIDTH - 60) // avg_char_width # Use image width with padding
 
-                # Position it at the bottom, with some padding
-                y_pos = IMG_HEIGHT - text_height - 20
+            wrapped_text = textwrap.fill(ai_text_to_display, width=wrap_width)
 
-                # Center the text block horizontally
-                text_width = text_bbox[2] - text_bbox[0]
-                x_pos = (IMG_WIDTH - text_width) / 2
+            text_bbox = draw.textbbox((0, 0), wrapped_text, font=font_ai, align="center")
+            text_width = text_bbox[2] - text_bbox[0]
+            text_height = text_bbox[3] - text_bbox[1]
 
-                draw.text((x_pos, y_pos), wrapped_text, font=font_ai, fill=FONT_COLOR, align="center")
+            # Center the text block horizontally and place it at the bottom
+            x_pos = (IMG_WIDTH - text_width) / 2
+            y_pos = IMG_HEIGHT - text_height - 20 # 20px padding from the bottom
+
+            draw.text((x_pos, y_pos), wrapped_text, font=font_ai, fill=FONT_COLOR, align="center")
 
     except Exception as e:
         print(f"Error getting or drawing AI task data: {e}")
-        # Optionally draw an error on the image
+        # Display a clear error message on the image if something goes wrong
         error_font = get_font(18)
-        draw.text((30, IMG_HEIGHT - 40), "AI Task Unavailable", font=error_font, fill=RED_COLOR)
+        error_text = "AI Task Unavailable"
+        text_bbox = draw.textbbox((0, 0), error_text, font=error_font)
+        text_width = text_bbox[2] - text_bbox[0]
+        x_pos = (IMG_WIDTH - text_width) / 2
+        draw.text((x_pos, IMG_HEIGHT - 40), error_text, font=error_font, fill=RED_COLOR)
 
 
     # --- Save image to file ---
