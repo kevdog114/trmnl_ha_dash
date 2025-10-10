@@ -14,7 +14,7 @@ WEATHER_ENTITY = os.environ.get("WEATHER_ENTITY")
 CALENDAR_ENTITY = os.environ.get("CALENDAR_ENTITY")
 AI_INSTRUCTIONS = os.environ.get("AI_INSTRUCTIONS")
 AI_ENTITY_ID = os.environ.get("AI_ENTITY_ID")
-OUTPUT_PATH = "trmnl.png"
+OUTPUT_PATH = "trmnl.bmp"
 
 # --- Image Settings ---
 IMG_WIDTH = 800
@@ -314,7 +314,7 @@ def generate_image():
 
 
     # --- Save image to file ---
-    img.save(OUTPUT_PATH)
+    img.save(OUTPUT_PATH, "BMP")
     print(f"Image saved to {OUTPUT_PATH}")
 
 if __name__ == "__main__":

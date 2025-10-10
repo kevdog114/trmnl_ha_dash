@@ -44,7 +44,7 @@ spi:
 # Image component to download the dashboard image
 image:
   - id: dashboard_image
-    url: https://raw.githubusercontent.com/kevdog114/trmnl_ha_dash/main/trmnl.png
+    url: https://raw.githubusercontent.com/kevdog114/trmnl_ha_dash/main/trmnl.bmp
     type: Grayscale
     use_cache: false
 

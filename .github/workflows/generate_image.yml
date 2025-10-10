@@ -45,13 +45,13 @@ jobs:
 
       - name: Generate redirect JSON
         run: |
-          printf '{\n  "url": "https://raw.githubusercontent.com/kevdog114/trmnl_ha_dash/main/trmnl.png",\n  "filename": "trmnl_ha_dash_%s.png",\n  "refresh_rate": 3600\n}\n' "$(date +%Y%m%d%H%M%S)" > trmnl_redirect.json
+          printf '{\n  "url": "https://raw.githubusercontent.com/kevdog114/trmnl_ha_dash/main/trmnl.bmp",\n  "filename": "trmnl_ha_dash_%s.bmp",\n  "refresh_rate": 3600\n}\n' "$(date +%Y%m%d%H%M%S)" > trmnl_redirect.json
 
       - name: Commit and push the updated image
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "feat: Update dashboard image"
-          file_pattern: trmnl.png trmnl_redirect.json
+          file_pattern: trmnl.bmp trmnl_redirect.json
           commit_user_name: github-actions[bot]
           commit_user_email: github-actions[bot]@users.noreply.github.com
           commit_author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
