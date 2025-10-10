@@ -15,7 +15,3 @@ docker-compose.override.yml
 .env
 secrets.yaml
 *.secret
-
-# Generated image files
-trmnl.png
-trmnl.bmp
