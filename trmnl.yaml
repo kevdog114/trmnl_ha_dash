@@ -26,31 +26,31 @@ wifi:
 
 captive_portal:
 
+# Component to make HTTP requests
+http_request:
+  user_agent: esphome/device
+
+# Check for wifi connectivity
+binary_sensor:
+  - platform: status
+    name: "Trmnl Status"
+
 # SPI bus configuration for the Waveshare e-paper display.
 # These pins are the default hardware SPI pins for the ESP32-C3.
 spi:
   clk_pin: GPIO6
   mosi_pin: GPIO7
 
-font:
-  - file: "gfonts://Roboto"
-    id: roboto_font
-    size: 20
+# Image component to download the dashboard image
+image:
+  - id: dashboard_image
+    url: https://raw.githubusercontent.com/kevdog114/trmnl_ha_dash/main/trmnl.png
+    type: Grayscale
+    use_cache: false
 
 time:
   - platform: homeassistant
     id: ha_time
-
-# Color definitions for the tri-color (Black, White, Red) display.
-color:
-  - id: color_black
-    red: 0%
-    green: 0%
-    blue: 0%
-  - id: color_red
-    red: 100%
-    green: 0%
-    blue: 0%
 
 # Display configuration for the Waveshare 7.5" e-paper display.
 # IMPORTANT: Ensure your display is wired to the ESP32-C3-DevKitM-1 according to these pins.
@@ -70,8 +70,7 @@ display:
     reset_pin: GPIO3
     update_interval: 300s
     lambda: |-
-      if (id(ha_time).now().is_valid()) {
-        it.printf(10, 10, id(roboto_font), id(color_black), "%s", id(ha_time).now().strftime("%A, %B %d, %Y").c_str());
-      } else {
-        it.printf(10, 10, id(roboto_font), id(color_black), "Waiting for time...");
-      }
+      // Clear the screen
+      it.fill(it.COLOR_ON);
+      // Draw the image
+      it.image(0, 0, id(dashboard_image));
